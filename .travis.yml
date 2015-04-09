@@ -1,0 +1,5 @@
+language: rust
+after_success:
+  - curl https://gist.githubusercontent.com/brandonson/1b64f856ad07904cac35/raw/ > push-rustdoc-pages.sh
+  - chmod +x push-rustdoc-pages.sh
+  - ./push-rustdoc-pages.sh
