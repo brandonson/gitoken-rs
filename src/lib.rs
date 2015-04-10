@@ -67,22 +67,29 @@ pub struct GithubToken {
   pub url: String,
 }
 
-pub fn create_token(uname: &str, pass: &str, scopes:&[Scope]) -> Result<GithubToken, GitokenRequestError> {
-  create_token_with_note(uname, pass, scopes, "Created by Gitoken")
-}
+impl GithubToken {
+  pub fn create(uname: &str, pass: &str, scopes: &[Scope]) -> Result<GithubToken, GitokenRequestError> {
+    GithubToken::create_with_note(uname, pass, scopes, "Created by Gitoken")
+  }
 
-pub fn create_token_with_note(
-    uname: &str,
-    pass: &str,
-    scopes: &[Scope],
-    note: &str) -> Result<GithubToken, GitokenRequestError> {
+  pub fn create_with_note(
+      uname: &str,
+      pass: &str,
+      scopes: &[Scope],
+      note: &str) -> Result<GithubToken, GitokenRequestError> {
+    let json = try!(fetch_token_json(uname, pass, scopes, note));
 
-  let json = try!(fetch_token_json(uname, pass, scopes, note));
+    if let Json::Object(json_map) = json {
+      extract_token_from_json_map(json_map)
+    } else {
+      Err(GitokenUnexpectedJson(json))
+    }
+  }
 
-  if let Json::Object(json_map) = json {
-    extract_token_from_json_map(json_map)
-  } else {
-    Err(GitokenUnexpectedJson(json))
+  pub fn delete(&self,
+                uname: &str,
+                pass: &str) -> HttpResult<Response> {
+    delete_token_by_url(uname, pass, AsRef::<str>::as_ref(&self.url))
   }
 }
 
@@ -126,10 +133,6 @@ fn extract_token_from_json_map(map: json::Object) -> Result<GithubToken, Gitoken
     }
   }
   Err(GitokenUnexpectedJson(Json::Object(map)))
-}
-
-pub fn delete_token(uname: &str, password: &str, token:&GithubToken) -> HttpResult<Response> {
-  delete_token_by_url(uname, password, AsRef::<str>::as_ref(&token.url))
 }
 
 pub fn delete_token_by_url(uname: &str, password: &str, url:&str) -> HttpResult<Response> {

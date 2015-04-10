@@ -7,4 +7,4 @@ authors = ["Brandon Sanderson <bas.bsanders@gmail.com>"]
 rustc-serialize = "*"
 
 [dependencies.hyper]
-git = "https://github.com/brandonson/hyper.git"
+git = "https://github.com/hyperium/hyper.git"
