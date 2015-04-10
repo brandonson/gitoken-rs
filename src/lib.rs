@@ -11,6 +11,7 @@ use rcserialize::json::{BuilderError, Json, ToJson};
 use std::collections::HashMap;
 use std::error::Error;
 use std::fmt;
+use std::io::Read;
 
 use GitokenRequestError::*;
 pub use scope::Scope;
@@ -108,7 +109,10 @@ fn fetch_token_json(uname: &str,
                       .body(AsRef::<str>::as_ref(&req_json_str));
 
   let mut result = try!(request.send());
-  Ok(try!(Json::from_reader(&mut result)))
+  let mut string = String::new();
+  let _ = result.read_to_string(&mut string).unwrap();
+  println!("json: {:?}", string);
+  Ok(try!(Json::from_str(&string)))
 }
 
 fn build_token_creation_json(scopes: &[Scope], note:&str) -> Json {
