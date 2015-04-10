@@ -3,7 +3,7 @@ extern crate rustc_serialize as rcserialize;
 
 use hyper::{Client, HttpError, HttpResult};
 use hyper::client::Response;
-use hyper::header::{Connection, ConnectionOption, Authorization, Basic};
+use hyper::header::{Connection, ConnectionOption, Authorization, Basic, UserAgent};
 
 use rcserialize::json;
 use rcserialize::json::{BuilderError, Json, ToJson};
@@ -22,7 +22,7 @@ pub mod scope;
 pub enum GitokenRequestError{
   GitokenHttpError(HttpError),
   GitokenUnexpectedStatusCode(Response),
-  GitokenUnparseableContent(BuilderError),
+  GitokenUnparseableContent(String, BuilderError),
   GitokenUnexpectedJson(Json),
 }
 
@@ -34,7 +34,7 @@ impl From<HttpError> for GitokenRequestError {
 
 impl From<BuilderError> for GitokenRequestError {
   fn from(err: BuilderError) -> GitokenRequestError {
-    GitokenUnparseableContent(err)
+    GitokenUnparseableContent("Result created using From implementation, content unknown".to_string(), err)
   }
 }
 
@@ -49,7 +49,7 @@ impl Error for GitokenRequestError{
     match *self {
       GitokenHttpError(_) => "HTTP request failed",
       GitokenUnexpectedStatusCode(_) => "Unexpected HTTP status code returned",
-      GitokenUnparseableContent(_) => "HTTP response body contents could not be parsed",
+      GitokenUnparseableContent(_, _) => "HTTP response body contents could not be parsed",
       GitokenUnexpectedJson(_) => "Unexpected HTTP response json",
     }
   }
@@ -57,7 +57,7 @@ impl Error for GitokenRequestError{
   fn cause(&self) -> Option<&Error> {
     match *self {
       GitokenHttpError(ref err) => Some(err as &Error),
-      GitokenUnparseableContent(ref err) => Some(err as &Error),
+      GitokenUnparseableContent(_, ref err) => Some(err as &Error),
       _ => None,
     }
   }
@@ -106,13 +106,16 @@ fn fetch_token_json(uname: &str,
                       .header(Connection(vec![ConnectionOption::Close]))
                       .header(Authorization(Basic{username: uname.to_string(),
                                                   password: Some(password.to_string())}))
+                      .header(UserAgent("Gitoken (brandonson/gitoken-rs)".to_string()))
                       .body(AsRef::<str>::as_ref(&req_json_str));
 
   let mut result = try!(request.send());
   let mut string = String::new();
   let _ = result.read_to_string(&mut string).unwrap();
-  println!("json: {:?}", string);
-  Ok(try!(Json::from_str(&string)))
+  match Json::from_str(&string) {
+    Ok(json) => Ok(json),
+    Err(builder_err) => Err(GitokenUnparseableContent(string, builder_err)),
+  }
 }
 
 fn build_token_creation_json(scopes: &[Scope], note:&str) -> Json {
