@@ -148,7 +148,8 @@ pub fn delete_token_by_url(uname: &str, password: &str, url:&str) -> HttpResult<
   let request = client.delete(url)
                       .header(Connection(vec![ConnectionOption::Close]))
                       .header(Authorization(Basic{username: uname.to_string(),
-                                                  password: Some(password.to_string())}));
+                                                  password: Some(password.to_string())}))
+                      .header(UserAgent("Gitoken (brandonson/gitoken-rs)".to_string()));
   request.send()
 }
 
