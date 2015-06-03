@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["GitokenRequestError",""]],"fn":[["delete_token_by_url",""]],"mod":[["scope",""]],"struct":[["GithubToken",""]]});
