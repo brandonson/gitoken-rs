@@ -1,7 +1,8 @@
 extern crate hyper;
 extern crate rustc_serialize as rcserialize;
 
-use hyper::{Client, HttpError, HttpResult};
+use hyper::Client;
+use hyper::error as hypererr;
 use hyper::client::Response;
 use hyper::header::{Connection, ConnectionOption, Authorization, Basic, UserAgent};
 
@@ -20,14 +21,14 @@ pub mod scope;
 
 #[derive(Debug)]
 pub enum GitokenRequestError{
-  GitokenHttpError(HttpError),
+  GitokenHttpError(hypererr::Error),
   GitokenUnexpectedStatusCode(Response),
   GitokenUnparseableContent(String, BuilderError),
   GitokenUnexpectedJson(Json),
 }
 
-impl From<HttpError> for GitokenRequestError {
-  fn from(err: HttpError) -> GitokenRequestError {
+impl From<hypererr::Error> for GitokenRequestError {
+  fn from(err: hypererr::Error) -> GitokenRequestError {
     GitokenHttpError(err)
   }
 }
@@ -89,7 +90,7 @@ impl GithubToken {
 
   pub fn delete(&self,
                 uname: &str,
-                pass: &str) -> HttpResult<Response> {
+                pass: &str) -> hypererr::Result<Response> {
     delete_token_by_url(uname, pass, AsRef::<str>::as_ref(&self.url))
   }
 }
@@ -142,7 +143,7 @@ fn extract_token_from_json_map(map: json::Object) -> Result<GithubToken, Gitoken
   Err(GitokenUnexpectedJson(Json::Object(map)))
 }
 
-pub fn delete_token_by_url(uname: &str, password: &str, url:&str) -> HttpResult<Response> {
+pub fn delete_token_by_url(uname: &str, password: &str, url:&str) -> hypererr::Result<Response> {
   let mut client = Client::new();
 
   let request = client.delete(url)
